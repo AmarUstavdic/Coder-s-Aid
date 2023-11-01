@@ -1,0 +1,52 @@
+# Node.js
+server/node_modules/
+server/package-lock.json
+yarn.lock
+
+
+# IDE and Code Editor Files
+.vscode/
+.idea/
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.user
+*.sln.docstates
+*.suo
+*.user
+*.sln.docstates
+
+# Compiled Code
+*.class
+*.war
+*.jar
+
+# Logs and Temporary Files
+*.log
+*.log.*
+.DS_Store
+Thumbs.db
+*.swp
+
+# User or Environment-specific Files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Dependencies and Build Artifacts
+dist/
+build/
+out/
+target/
+
+# Project-specific Files/Directories
+config.js
+secret.key
+secret.js
+/backup/
