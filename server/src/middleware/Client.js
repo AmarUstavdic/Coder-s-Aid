@@ -1,129 +1,202 @@
 const axios = require('axios')
-const util = require('../../../util/util')
+const qs = require('qs');
+const cheerio = require('cheerio');
 const tough = require('tough-cookie');
 const CookieJar = tough.CookieJar;
+const HeadersStore = require('./HeadersStore')
 
 
 class Client {
 
-    constructor(handle, password, handleOrEmail) {
-        this.cookieJar = new CookieJar()
-        this.handle = handle
-        this.handleOrEmail = handleOrEmail
-        this.password = password
-        this.csrf = ''
-        this.ftaa = ''
-        this.bfaa = ''
-        this.lastSubmission = ''
-        this.host = 'codeforces.com'
-        this.proxy = ''
-        this.path = '/enter'
+    #hs
+    #cookieJar
+    #handle
+    #handleOrEmail
+    #password
+    #csrf
+    #ftaa
+    #bfaa
+    #lastSubmission
+    #host
+    #proxy
+    #path
+
+    constructor(handle, handleOrEmail, password) {
+        this.#hs = new HeadersStore()
+        this.#cookieJar = new CookieJar()
+        this.#handle = handle
+        this.#handleOrEmail = handleOrEmail
+        this.#password = password
+        this.#csrf = ''
+        this.#ftaa = ''
+        this.#bfaa = ''
+        this.#lastSubmission = ''
+        this.#host = 'codeforces.com'
+        this.#proxy = ''
+        this.#path = '/enter'
     }
 
-    isLoggedIn() {
+    async isLoggedIn() {
+        const headers = this.#hs.getHeaders('get', 'https://codeforces.com/profile')
 
-        return false
+        /*
+        await this.#buildCookieString('https://codeforces.com')
+            .then(cookieString => {
+                headers['cookie'] = cookieString;
+            })
+            .catch(error => {
+                console.error(error);
+            });
+
+        console.log(headers)
+        */
+
+        const config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: `https://codeforces.com/profile/${this.#handle}`,
+            headers: headers
+        }
+
+        await axios.request(config)
+            .then((response) => {
+
+                const setCookieHeaders = response.headers['set-cookie'];
+                this.#storeCookies(setCookieHeaders, 'https://codeforces.com')
+
+                const $ = cheerio.load(response.data);
+                const link = $('a[href="/settings/general"]');
+                const regex = `^${this.#handle}$`;
+                const match = response.data.match(regex);
+
+                if (link > 0 && match) {
+                    console.log('User is logged in')
+                } else {
+                    console.log('User is NOT logged in')
+                }
+            })
+            .catch((error) => {
+                console.log(error);
+            })
     }
 
     async login() {
-        if (!this.isLoggedIn()) {
-            await this.#initialRequest()
-        }
+        await this.#getTokens()
 
-        const form = {
-            'csrf_token': this.csrf,
+        let data = qs.stringify({
+            'csrf_token': this.#csrf,
             'action': 'enter',
-            'ftaa': this.ftaa,
-            'bfaa': this.bfaa,
-            'handleOrEmail': this.handleOrEmail,
-            'password': this.password,
-            '_tta': '91',
-            'remember': 'on',
-        }
-
-        if (form.ftaa == '') {
-            form.ftaa = util.rndString(18)
-        }
-        if (form.bfaa == '') {
-            form.bfaa = '5c4ff8fb91636746a2f06f8ce404b90a'
-        }
-
-        console.log("ftaa: ", form.ftaa)
-        console.log("bfaa: ", form.bfaa)
-        console.log("csrf: ", form.csrf_token)
-        //console.log("cookie: ", this.cookieJar)
-
-        
-        let cookieString
-        this.cookieJar.getCookies('https://codeforces.com', (error, cookies) => {
-            if (error) {
-                console.error(error);
-            } else { 
-                cookieString = cookies.toString()
-            }
+            'ftaa': this.#ftaa,
+            'bfaa': this.#bfaa,
+            'handleOrEmail': this.#handleOrEmail,
+            'password': this.#password,
+            '_tta': '91'
         });
-    
 
-        const headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept-Language': 'en-US,en;q=0.6',
-            'Sec-Ch-Ua': '"Chromium";v="118", "Brave";v="118", "Not=A?Brand";v="99"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"Linux"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Sec-Gpc': '1',
-
-            'Cache-Control': 'no-cache',
-            'Content-Type': 'application/x-www-form-urlencoded',
-            
-            'Origin': 'https://codeforces.com',
-            'Pragma': 'no-cache',
-            'Referer': 'https://codeforces.com/enter',
-            
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-        }
-
-        const res = await axios.post('https://codeforces.com/enter', form, {headers})
-
-        
-        console.log(res.data)
-
-    }
-
-    async #initialRequest() {
-        const headers = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept-Language': 'en-US,en;q=0.7',
-            'Sec-Ch-Ua': '"Chromium";v="118", "Brave";v="118", "Not=A?Brand";v="99"',
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"Linux"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Sec-Gpc': '1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-        }
-
-        const res = await axios.get('https://codeforces.com/enter', { headers });
-        this.ftaa = util.parseFtaa(res.data)
-        this.bfaa = util.parseBfaa(res.data)
-        this.csrf = util.parseCsrfToken(res.data)
-
-        if (res.headers['set-cookie']) {
-            res.headers['set-cookie'].forEach(cookie => {
-                this.cookieJar.setCookieSync(cookie, 'https://codeforces.com');
+        const headers = this.#hs.getHeaders('post', 'https://codeforces.com/enter')
+        await this.#buildCookieString('https://codeforces.com')
+            .then(cookieString => {
+                headers['cookie'] = cookieString;
+            })
+            .catch(error => {
+                console.error(error);
             });
+
+        let config = {
+            method: 'post',
+            maxBodyLength: Infinity,
+            url: 'https://codeforces.com/enter',
+            headers: headers,
+            data: data
+        };
+
+        await axios.request(config)
+            .then((response) => {
+                const setCookieHeader = response.headers['set-cookie'];
+                this.#storeCookies(setCookieHeader, 'https://codeforces.com')
+                console.log(response.status);
+            })
+            .catch((error) => {
+                console.log(error);
+            });
+    }
+
+    async #getTokens() {
+        const config = {
+            method: 'get',
+            maxBodyLength: Infinity,
+            url: 'https://codeforces.com/enter',
+            headers: this.#hs.getHeaders('get', 'https://codeforces.com/enter')
+        }
+
+        await axios.request(config)
+            .then((response) => {
+
+                //const setCookieHeaders = response.headers['set-cookie'];
+                //this.#storeCookies(setCookieHeaders, 'https://codeforces.com')
+
+                this.#csrf = this.#parseCsrf(response.data)
+                this.#ftaa = this.#parseFtaa(response.data)
+                this.#bfaa = this.#parseBfaa(response.data)
+            })
+            .catch((error) => {
+                console.log(error);
+            })
+    }
+
+    #buildCookieString(url) {
+        return new Promise((resolve, reject) => {
+            this.#cookieJar.getCookies(url, (err, cookies) => {
+                if (err) {
+                    console.error(err);
+                    reject(err);
+                } else {
+                    const cookieStrings = cookies.map(cookie => cookie.toString());
+                    const allCookiesString = cookieStrings.join('; ');
+                    resolve(allCookiesString);
+                }
+            });
+        });
+    }
+
+    #storeCookies(setCookieHeaders, url) {
+        if (Array.isArray(setCookieHeaders)) {
+            setCookieHeaders.forEach(setCookieHeader => {
+                const cookie = tough.parse(setCookieHeader);
+
+                this.#cookieJar.setCookie(cookie, url, (err, cookie) => {
+                    if (err) console.error(err);
+                });
+            });
+        } else if (setCookieHeaders) {
+            const cookie = tough.parse(setCookieHeaders);
+            this.#cookieJar.setCookie(cookie, url, (err, cookie) => {
+                if (err) console.error(err);
+            });
+        } else {
+            console.log('No Set-Cookie header found in the response.');
         }
     }
 
+    #parseCsrf(data) {
+        const $ = cheerio.load(data)
+        const csrfToken = $('.csrf-token').attr('data-csrf')
+        return csrfToken
+    }
+
+    #parseFtaa(data) {
+        const ftaaRegex = /window\._ftaa\s*=\s*"([^"]+)"/
+        const ftaaMatch = data.match(ftaaRegex)
+        const ftaaValue = ftaaMatch ? ftaaMatch[1] : ''
+        return ftaaValue
+    }
+
+    #parseBfaa(data) {
+        const bfaaRegex = /window\._bfaa\s*=\s*"([^"]+)"/
+        const bfaaMatch = data.match(bfaaRegex)
+        const bfaaValue = bfaaMatch ? bfaaMatch[1] : ''
+        return bfaaValue
+    }
 }
 
 module.exports = Client
