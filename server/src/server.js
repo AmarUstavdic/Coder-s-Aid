@@ -14,7 +14,7 @@ const cfapi = new CodeforcesAPI(
 async function main() {
     await cfapi.login()
 
-    cfapi.submit('./middleware/main.cpp')
+    cfapi.submit('/home/lilwizzz/Desktop/Coder-s-Aid/server/src/middleware/main.cpp')
 }
 
 main()

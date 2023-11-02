@@ -1,6 +1,6 @@
 const axios = require('axios');
 const qs = require('qs');
-const fs = require('fs');
+const fs = require('fs').promises;
 const cheerio = require('cheerio');
 const tough = require('tough-cookie');
 const CookieJar = tough.CookieJar;
@@ -233,10 +233,10 @@ class CodeforcesAPI {
             });
 
 
-        
-        
 
-        let data = qs.stringify({
+        const code = await this.#readFileToString(filePath)
+
+        let uData = {
             'csrf_token': csrf,
             'ftaa': ftaa,
             'bfaa': bfaa,
@@ -248,18 +248,17 @@ class CodeforcesAPI {
             'tabSize': '4',
             'sourceFile': '',
             '_tta': '372'
-        });
+        }
 
+        console.log(code)
+        uData['source'] = code
+        console.log('helo')
 
-        this.#readFileToString(filePath, (err, formattedFile) => {
-            if (err) {
-                console.error(`Error: Unable to read the file - ${err.message}`);
-            } else {
-                data['source'] = formattedFile
-            }
-        });
+        let data = qs.stringify(uData);
 
-        console.log(data.source)
+        console.log(data)
+
+        
 
         config = {
             method: 'post',
@@ -311,15 +310,14 @@ class CodeforcesAPI {
 
 
 
-    #readFileToString(filePath, callback) {
-        fs.readFile(filePath, 'utf8', (err, data) => {
-            if (err) {
-                callback(err, null);
-            } else {
-                const formattedContent = data.split('\n').map(line => line.trim()).join('\n');
-                callback(null, formattedContent);
-            }
-        });
+    async #readFileToString(filePath) {
+        try {
+            const data = await fs.readFile(filePath, 'utf8');
+            const formattedContent = data.split('\n').map(line => line.trim()).join('\n');
+            return formattedContent;
+        } catch (err) {
+            throw err;
+        }
     }
 
 
