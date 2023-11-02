@@ -1,48 +1,56 @@
 const express = require('express');
 const axios = require('axios');
 const secret = require('../../secret')
-const Client = require('./middleware/Client')
 
 
-const c = new Client(
-    secret.handle,
+const CodeforcesAPI = require('./middleware/CodeforcesAPI')
+
+const cfapi = new CodeforcesAPI(
+    secret.handle, 
     secret.handleOrEmail,
     secret.password
-);
+)
 
-/*
 async function main() {
-    await c.login();
-    c.isLoggedIn();
+    await cfapi.login()
+
+    cfapi.submit('./middleware/main.cpp')
 }
 
-main();
-*/
+main()
 
 
 
+/*
 
-
-const app = express();
+const server = express();
 const PORT = 3000;
 
-app.get('/make-request', async (req, res) => {
+server.get('/money', async (req, res) => {
   try {
     const response = await axios.get('https://jsonplaceholder.typicode.com/posts/1');
     res.json(response.data);
+
   } catch (error) {
     console.error(error);
     res.status(500).send('Internal Server Error');
   }
 });
 
-app.get('*', (req, res) => {
-  res.status(404).send('Not Found');
+server.get('/register', (req, res) => {
+    res.json('Hajmo na cik')
+})
+
+
+server.get('*', (req, res) => {
+  res.status(404).send('Pusi kurac');
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+*/
 
 
 
