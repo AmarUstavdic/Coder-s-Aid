@@ -10,7 +10,7 @@ db.query('SHOW TABLES;')
 
 
 const server = express();
-const PORT = 3000;
+const PORT = 3232;
 
 server.get('/', async (req, res) => {
   try {
