@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const Login = () => {
-
-    const [resText, setResText] = useState('')
-
+const Register = () => {
+    const [resText, setResText] = useState("");
+    
     const [formData, setFormData] = useState({
-        username: '',
-        password: '',
+        username: "",
+        password: "",
+        email: "",
     });
 
     const handleInputChange = (e) => {
@@ -15,23 +15,23 @@ const Login = () => {
         setFormData({ ...formData, [name]: value });
     };
 
-    const handleLogin = (e) => {
+    const handleRegister = (e) => {
         e.preventDefault();
+        
+        console.log("clicked button");
+        console.log(formData);
 
-        console.log('clicked button')
-        console.log(formData)
-
-        axios.post('http://192.168.0.11:5000/login', formData)
+        axios
+            .post("http://192.168.0.11:5000/register", formData)
             .then((response) => {
-                setResText(response.data)
-                console.log(response)
+                setResText(response.data);
+                console.log(response);
             })
             .catch((error) => {
-                setResText('Wrong cridentials')
+                setResText("Registration failed");
                 console.error(error);
             });
     };
-
 
     return (
         <>
@@ -39,12 +39,12 @@ const Login = () => {
                 <div className="row">
                     <div className="col-md-6 offset-md-3">
                         <div className="card">
-                            <div className="card-header">Login</div>
+                            <div className="card-header">Register</div>
                             <div className="card-body">
-                                <form onSubmit={handleLogin}>
+                                <form onSubmit={handleRegister}>
                                     <div className="mb-3">
                                         <label htmlFor="username" className="form-label">
-                                            { resText }
+                                            {resText}
                                         </label>
                                         <input
                                             type="text"
@@ -70,8 +70,22 @@ const Login = () => {
                                             placeholder="Enter your password"
                                         />
                                     </div>
+                                    <div className="mb-3">
+                                        <label htmlFor="email" className="form-label">
+                                            Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            className="form-control"
+                                            id="email"
+                                            name="email"
+                                            value={formData.email}
+                                            onChange={handleInputChange}
+                                            placeholder="Enter your email"
+                                        />
+                                    </div>
                                     <button type="submit" className="btn btn-primary">
-                                        Login
+                                        Register
                                     </button>
                                 </form>
                             </div>
@@ -83,4 +97,4 @@ const Login = () => {
     );
 };
 
-export default Login;
+export default Register;
